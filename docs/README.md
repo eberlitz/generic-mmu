@@ -1,6 +1,6 @@
 # Generic MMU for 3D printers
 
-The whole controlling logic can be found at [src/filament_changer.rs](src/filament_changer.rs)
+The whole controlling logic can be found at [src/filament_changer.rs](../src/filament_changer.rs)
 
 ## Dev Containers
 
