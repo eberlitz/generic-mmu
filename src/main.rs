@@ -21,17 +21,7 @@ use esp_hal::{
 use filament_changer::FilamentChanger;
 use serde::Deserialize;
 
-// use embassy_net::{Stack, StackResources};
-// use esp_hal::{
-//     rng::Rng,
-// };
-// use esp_wifi::{wifi::WifiStaDevice, EspWifiInitFor};
-// use net::{connection, net_task};
-// use web::web_task;
-
 mod filament_changer;
-// mod net;
-// mod web;
 
 extern crate alloc;
 
@@ -78,32 +68,6 @@ async fn main(spawner: Spawner) -> ! {
     // initialize embasy
     let timg1 = TimerGroup::new(peripherals.TIMG1);
     esp_hal_embassy::init(timg1.timer0);
-
-    // Initialize wifi
-    // let timg0 = TimerGroup::new(peripherals.TIMG0);
-    // let init = esp_wifi::init(
-    //     EspWifiInitFor::Wifi,
-    //     timg0.timer0,
-    //     Rng::new(peripherals.RNG),
-    //     peripherals.RADIO_CLK,
-    // )
-    // .unwrap();
-    // Init network stack
-    // let wifi = peripherals.WIFI;
-    // let (wifi_device, wifi_controller) =
-    //     esp_wifi::wifi::new_with_mode(&init, wifi, WifiStaDevice).unwrap();
-    // let dhcpv4_config = embassy_net::Config::dhcpv4(Default::default());
-    // let seed = 4523988; // very random, very secure seed
-    // let stack_resource = Box::leak(Box::new(StackResources::<5>::new()));
-    // let stack = Box::leak(Box::new(Stack::new(
-    //     wifi_device,
-    //     dhcpv4_config,
-    //     stack_resource,
-    //     seed,
-    // )));
-
-    // spawner.spawn(connection(wifi_controller)).ok();
-    // spawner.spawn(net_task(stack)).ok();
 
     // initialize filament changer
     let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
@@ -161,19 +125,6 @@ async fn main(spawner: Spawner) -> ! {
         .spawn(filament_changer_task(filament_changer))
         .unwrap();
 
-    // let config = Box::leak(Box::new(picoserve::Config {
-    //     timeouts: picoserve::Timeouts {
-    //         start_read_request: Some(Duration::from_secs(5)),
-    //         read_request: Some(Duration::from_secs(1)),
-    //         write: Some(Duration::from_secs(1)),
-    //     },
-    //     connection: picoserve::KeepAlive::KeepAlive,
-    // }));
-
-    // spawner
-    //     .spawn(web_task(stack, config, control_channel.sender()))
-    //     .ok();
-
     loop {
         Timer::after(Duration::from_millis(5_000)).await;
     }
@@ -206,12 +157,4 @@ H   | H   | 16
 
 
 # ESP WROOM 32 Pinout (30 Pin Version)
-
-
-
-
-
-
-
-
 */
