@@ -2,9 +2,7 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use alloc::boxed::Box;
 use embassy_executor::Spawner;
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::{
@@ -19,7 +17,6 @@ use esp_hal::{
     timer::timg::TimerGroup,
 };
 use filament_changer::FilamentChanger;
-use serde::Deserialize;
 
 mod filament_changer;
 
@@ -38,23 +35,6 @@ Servo Motor Limits:
     90deg is 1500
     180deg is 2500
 */
-
-#[derive(Deserialize, Clone, Debug)]
-struct MoveCommand {
-    steps: i32,
-    stepper: i8,
-}
-
-impl Default for MoveCommand {
-    fn default() -> Self {
-        MoveCommand {
-            steps: 500,
-            stepper: 0,
-        }
-    }
-}
-
-const QUEUE_SIZE: usize = 10;
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) -> ! {
@@ -105,9 +85,6 @@ async fn main(spawner: Spawner) -> ! {
 
     let led = Output::new(io.pins.gpio2, Level::Low);
 
-    let control_channel = Channel::<NoopRawMutex, MoveCommand, QUEUE_SIZE>::new();
-    let control_channel = Box::leak(Box::new(control_channel));
-
     let filament_changer = FilamentChanger::new(
         stepper_a_dir,
         stepper_a_step,
@@ -118,7 +95,6 @@ async fn main(spawner: Spawner) -> ! {
         endswitch,
         led,
         pwm_pin,
-        control_channel.receiver(),
     );
 
     spawner

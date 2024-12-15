@@ -1,12 +1,9 @@
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Receiver};
 use embassy_time::{Duration, Instant, Timer};
 use esp_hal::{
     gpio::{AnyPin, Input, Output},
     mcpwm::operator::PwmPin,
     peripherals::MCPWM0,
 };
-
-use crate::{MoveCommand, QUEUE_SIZE};
 
 // Servo Motor Limits:
 //     300 is min
@@ -63,7 +60,6 @@ pub struct FilamentChanger<'a> {
     pwm_pin: PwmPin<'a, AnyPin, MCPWM0, 0, true>,
     current_filament: Option<usize>,
     current_position: u32,
-    receiver: Receiver<'a, NoopRawMutex, MoveCommand, QUEUE_SIZE>,
 }
 
 impl<'a> FilamentChanger<'a> {
@@ -77,7 +73,6 @@ impl<'a> FilamentChanger<'a> {
         endswitch: Input<'a>,
         led: Output<'a>,
         pwm_pin: PwmPin<'a, AnyPin, MCPWM0, 0, true>,
-        receiver: Receiver<'a, NoopRawMutex, MoveCommand, QUEUE_SIZE>,
     ) -> Self {
         Self {
             stepper_a_selector_dir: stepper_a_dir,
@@ -91,7 +86,6 @@ impl<'a> FilamentChanger<'a> {
             pwm_pin,
             current_filament: None,
             current_position: 0,
-            receiver,
         }
     }
 
@@ -358,25 +352,7 @@ impl<'a> FilamentChanger<'a> {
         self.home().await;
 
         loop {
-            if let Ok(command) = self.receiver.try_receive() {
-                log::info!("Received command: {:?}", command.steps);
-
-                if command.stepper == 0 {
-                    self.move_stepper_selector(
-                        command.steps.abs().try_into().unwrap(),
-                        command.steps > 0,
-                        None,
-                    )
-                    .await;
-                } else {
-                    self.move_stepper_extruder(
-                        command.steps.abs().try_into().unwrap(),
-                        command.steps > 0,
-                        EXTRUDER_STEP_SPEED,
-                    )
-                    .await;
-                }
-            } else if self.endswitch.is_high() {
+            if self.endswitch.is_high() {
                 log::debug!("Endswitch triggered");
                 self.led.set_low();
                 let start = embassy_time::Instant::now();
