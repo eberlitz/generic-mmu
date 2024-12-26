@@ -51,11 +51,24 @@ async fn main(spawner: Spawner) -> ! {
 
     // initialize filament changer
     let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
+    // Pin configuration
+    let servo_pin = Output::new(io.pins.gpio23, Level::Low);
+    let stepper_a_dir = Output::new(io.pins.gpio15, Level::Low);
+    let stepper_a_step = Output::new(io.pins.gpio4, Level::Low);
+    let stepper_a_en = Output::new(io.pins.gpio16, Level::High);
 
+    let stepper_b_dir = Output::new(io.pins.gpio17, Level::Low);
+    let stepper_b_step = Output::new(io.pins.gpio5, Level::Low);
+    let stepper_b_en = Output::new(io.pins.gpio18, Level::High);
+
+    let endswitch = Input::new(io.pins.gpio19, Pull::Down);
+
+    let led = Output::new(io.pins.gpio2, Level::Low);
+
+    // MCPWM setup ( for Servo )
     let clock_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
 
     let mut mcpwm = McPwm::new(peripherals.MCPWM0, clock_cfg);
-    let servo_pin = Output::new(io.pins.gpio23, Level::Low);
 
     // connect operator0 to timer0
     mcpwm.operator0.set_timer(&mcpwm.timer0);
@@ -72,18 +85,6 @@ async fn main(spawner: Spawner) -> ! {
     mcpwm.timer0.start(timer_clock_cfg);
 
     pwm_pin.set_timestamp(1000);
-
-    let stepper_a_dir = Output::new(io.pins.gpio15, Level::Low);
-    let stepper_a_step = Output::new(io.pins.gpio4, Level::Low);
-    let stepper_a_en = Output::new(io.pins.gpio16, Level::High);
-
-    let stepper_b_dir = Output::new(io.pins.gpio17, Level::Low);
-    let stepper_b_step = Output::new(io.pins.gpio5, Level::Low);
-    let stepper_b_en = Output::new(io.pins.gpio18, Level::High);
-
-    let endswitch = Input::new(io.pins.gpio19, Pull::Down);
-
-    let led = Output::new(io.pins.gpio2, Level::Low);
 
     let filament_changer = FilamentChanger::new(
         stepper_a_dir,
