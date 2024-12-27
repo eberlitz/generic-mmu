@@ -6,7 +6,7 @@ use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::{
-    gpio::{AnyPin, Input, Io, Level, Output, Pull},
+    gpio::{Input, Level, Output, Pull},
     mcpwm::{
         operator::{PwmPin, PwmPinConfig},
         timer::PwmWorkingMode,
@@ -50,20 +50,20 @@ async fn main(spawner: Spawner) -> ! {
     esp_hal_embassy::init(timg1.timer0);
 
     // initialize filament changer
-    let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
+
     // Pin configuration
-    let servo_pin = Output::new(io.pins.gpio23, Level::Low);
-    let stepper_a_dir = Output::new(io.pins.gpio15, Level::Low);
-    let stepper_a_step = Output::new(io.pins.gpio4, Level::Low);
-    let stepper_a_en = Output::new(io.pins.gpio16, Level::High);
+    let servo_pin = Output::new(peripherals.GPIO23, Level::Low);
+    let stepper_a_dir = Output::new(peripherals.GPIO15, Level::Low);
+    let stepper_a_step = Output::new(peripherals.GPIO4, Level::Low);
+    let stepper_a_en = Output::new(peripherals.GPIO16, Level::High);
 
-    let stepper_b_dir = Output::new(io.pins.gpio17, Level::Low);
-    let stepper_b_step = Output::new(io.pins.gpio5, Level::Low);
-    let stepper_b_en = Output::new(io.pins.gpio18, Level::High);
+    let stepper_b_dir = Output::new(peripherals.GPIO17, Level::Low);
+    let stepper_b_step = Output::new(peripherals.GPIO5, Level::Low);
+    let stepper_b_en = Output::new(peripherals.GPIO18, Level::High);
 
-    let endswitch = Input::new(io.pins.gpio19, Pull::Down);
+    let endswitch = Input::new(peripherals.GPIO19, Pull::Down);
 
-    let led = Output::new(io.pins.gpio2, Level::Low);
+    let led = Output::new(peripherals.GPIO2, Level::Low);
 
     // MCPWM setup ( for Servo )
     let clock_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
@@ -73,9 +73,9 @@ async fn main(spawner: Spawner) -> ! {
     // connect operator0 to timer0
     mcpwm.operator0.set_timer(&mcpwm.timer0);
     // connect operator0 to pin
-    let mut pwm_pin: PwmPin<'_, AnyPin, MCPWM0, 0, true> = mcpwm
+    let mut pwm_pin: PwmPin<'_, MCPWM0, 0, true> = mcpwm
         .operator0
-        .with_pin_a::<AnyPin>(servo_pin, PwmPinConfig::UP_ACTIVE_HIGH);
+        .with_pin_a(servo_pin, PwmPinConfig::UP_ACTIVE_HIGH);
 
     // start timer with timestamp values in the range of 0..=99 and a frequency of
     // 20 kHz

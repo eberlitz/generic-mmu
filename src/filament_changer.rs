@@ -1,6 +1,6 @@
 use embassy_time::{Duration, Instant, Timer};
 use esp_hal::{
-    gpio::{AnyPin, Input, Output},
+    gpio::{Input, Output},
     mcpwm::operator::PwmPin,
     peripherals::MCPWM0,
 };
@@ -35,8 +35,10 @@ const FILAMENT_RESTING_POSITIONS: [u32; 4] = [
 const UNLOAD_STEPS: u32 = 14500;
 const FAST_LOAD_STEPS: u32 = 15000; // 98mm
 
+const EXTRUDER_STEPS_PER_MM: u32 = 153;
+
 fn mm_to_steps(mm: f32) -> u32 {
-    (mm * 153.0) as u32
+    (mm * EXTRUDER_STEPS_PER_MM as f32) as u32
 }
 
 const SLOW_LOAD_STEPS: u32 = 12500; // 82mm
@@ -57,7 +59,7 @@ pub struct FilamentChanger<'a> {
     stepper_b_extruder_en: Output<'a>,
     endswitch: Input<'a>,
     led: Output<'a>,
-    pwm_pin: PwmPin<'a, AnyPin, MCPWM0, 0, true>,
+    pwm_pin: PwmPin<'a, MCPWM0, 0, true>,
     current_filament: Option<usize>,
     current_position: u32,
 }
@@ -72,7 +74,7 @@ impl<'a> FilamentChanger<'a> {
         stepper_b_en: Output<'a>,
         endswitch: Input<'a>,
         led: Output<'a>,
-        pwm_pin: PwmPin<'a, AnyPin, MCPWM0, 0, true>,
+        pwm_pin: PwmPin<'a, MCPWM0, 0, true>,
     ) -> Self {
         Self {
             stepper_a_selector_dir: stepper_a_dir,
@@ -87,6 +89,27 @@ impl<'a> FilamentChanger<'a> {
             current_filament: None,
             current_position: 0,
         }
+    }
+
+    pub async fn extrude(&mut self, mm: f32, mm_per_min: f32) {
+        let steps = mm_to_steps(mm);
+        let speed_mm_per_sec = mm_per_min / 60.0;
+        let step_duration_us =
+            (1.0 / (speed_mm_per_sec * EXTRUDER_STEPS_PER_MM as f32) * 1_000_000.0) as u64;
+        let step_duration = Duration::from_micros(step_duration_us);
+
+        self.move_stepper_extruder(steps, true, step_duration).await; // Assuming forward extrusion
+    }
+
+    pub async fn retract(&mut self, mm: f32, mm_per_min: f32) {
+        let steps = mm_to_steps(mm);
+        let speed_mm_per_sec = mm_per_min / 60.0;
+        let step_duration_us =
+            (1.0 / (speed_mm_per_sec * EXTRUDER_STEPS_PER_MM as f32) * 1_000_000.0) as u64;
+        let step_duration = Duration::from_micros(step_duration_us);
+
+        self.move_stepper_extruder(steps, false, step_duration)
+            .await; // Reverse direction for retraction
     }
 
     async fn home(&mut self) {
